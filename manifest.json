@@ -1,0 +1,18 @@
+{
+  "name": "어문회 한자능력검정시험 학습기 (8급~6급)",
+  "short_name": "한자공부",
+  "description": "한국 어문회 기준 8급~6급 배정한자 완벽 대비 에듀테크 PWA. 아이패드 애플펜슬 필기, 획순 훈련, Anki 간격 반복, 실전 모의시험, Gemini AI 코칭 탑재",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#FFFFFF",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

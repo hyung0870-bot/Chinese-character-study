@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>어문회 한자능력검정시험 학습기 (8급~6급)</title>
+  
+  <!-- PWA Meta Tags -->
+  <script>
+    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+      const manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      manifestLink.href = 'manifest.json';
+      document.head.appendChild(manifestLink);
+    }
+  </script>
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+
+  <!-- Google Fonts: Noto Serif KR (명조/해서) & Noto Sans KR -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Noto+Serif+KR:wght@500;600;700;900&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              study: '#FC6076',
+              card: '#B721FF',
+              exam: '#00F2FE',
+              report: '#30CFD0',
+              settings: '#00BF72'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Firebase SDK CDNs (Compat version for pure vanilla client-side PWA stability) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+  <!-- External CDNs -->
+  <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- App Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-[#F8FAFC] text-slate-800 min-h-screen flex flex-col antialiased selection:bg-indigo-100 pb-28 md:pb-6">
+
+  <!-- Top Glassmorphic Navigation Bar -->
+  <header class="sticky top-0 z-40 glass-panel border-b border-slate-200/60 safe-top">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+      
+      <!-- Brand Logo with Custom 3D Ribbon Icon -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-white shadow-md border border-white flex items-center justify-center p-1">
+          <svg viewBox="0 0 100 100" class="w-full h-full">
+            <defs>
+              <linearGradient id="logoRibbon" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FF9A44" />
+                <stop offset="50%" stop-color="#FC6076" />
+                <stop offset="100%" stop-color="#21D4FD" />
+              </linearGradient>
+            </defs>
+            <rect x="15" y="15" width="70" height="70" rx="20" fill="#FFFFFF" />
+            <path d="M 28 35 C 45 25, 75 25, 72 45 C 70 58, 40 50, 32 68 C 28 78, 65 80, 75 65" fill="none" stroke="url(#logoRibbon)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-slate-900 flex items-center gap-1.5">
+            어문회 한자공부
+            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-900 text-white">8급~6급</span>
+          </h1>
+          <p class="text-[11px] text-slate-400 font-medium hidden sm:block">아이패드 애플펜슬 필기 & Anki 간격 반복 & AI 코칭</p>
+        </div>
+      </div>
+
+      <!-- Center / Right: Quick Controls & User Switcher -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- AI Model Fallback Badge -->
+        <div id="ai-model-badge" class="hidden md:inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+          ⚡ Gemini AI 준비
+        </div>
+
+        <!-- Cloud Sync Status / Auth Button (Phone/iPad/PC sync) -->
+        <button id="header-cloud-btn" onclick="app.openAuthModal()" class="soft-btn px-2.5 py-1.5 sm:px-3.5 sm:py-2 flex items-center gap-1.5 rounded-full hover:scale-105 active:scale-95 transition shadow-sm border border-slate-200/80" title="클라우드 동기화 (폰/아이패드/PC 연동)">
+          <span id="cloud-sync-icon" class="text-xs sm:text-sm">☁️</span>
+          <span id="cloud-sync-text" class="text-xs font-bold text-slate-700 hidden sm:inline">동기화</span>
+          <span id="cloud-sync-dot" class="w-2 h-2 rounded-full bg-slate-300"></span>
+        </button>
+
+        <!-- Multi-User Pill Trigger -->
+        <button id="header-user-pill" class="soft-btn px-3 py-1.5 sm:px-4 sm:py-2 flex items-center gap-2.5 rounded-full hover:scale-105 active:scale-95 transition">
+          <div id="header-user-avatar" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full text-white font-bold text-xs flex items-center justify-center shadow-sm">
+            학
+          </div>
+          <div class="text-left hidden xs:block">
+            <div id="header-user-name" class="text-xs sm:text-sm font-bold text-slate-800 leading-tight">학습자</div>
+            <div class="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+              <span id="header-user-level" class="font-bold text-indigo-600">8급</span> •
+              <span id="header-user-streak" class="text-amber-500 font-bold">1일 연속</span>
+            </div>
+          </div>
+          <svg class="w-3.5 h-3.5 text-slate-400 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" /></svg>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Content Container with Responsive Width -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-4 pb-12">
+
+    <!-- =====================================================================
+         TAB 1. 공부 모드 (순차 학습 & 획순 연습 & 자유 반복 쓰기)
+         ===================================================================== -->
+    <section id="tab-pane-study" class="space-y-6 fade-in">
+      
+      <!-- Top Action & Level Selector Bar -->
+      <div class="soft-card p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">급수 선택</span>
+          <select id="study-level-select" onchange="app.changeStudyLevel(this.value)" class="bg-slate-50 border border-slate-200 text-slate-800 font-bold text-sm rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-rose-300">
+            <option value="8">8급 (기초 50자)</option>
+            <option value="7_2">7급 II (+50자, 누적 100자)</option>
+            <option value="7">7급 (+50자, 누적 150자)</option>
+            <option value="6_2">6급 II (+75자, 누적 225자)</option>
+            <option value="6">6급 (+75자, 누적 300자)</option>
+          </select>
+
+          <!-- Filter Unlearned -->
+          <button onclick="app.setStudyFilter(app.studyFilter === 'all' ? 'unlearned' : 'all')" class="soft-btn px-3 py-1.5 text-xs font-semibold rounded-xl text-slate-600">
+            <span id="study-filter-label">미학습 한자만 보기</span>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- AI Storytelling Tip Button -->
+          <button onclick="app.askAiMnemonicForCurrentHanja()" class="soft-btn px-4 py-2 rounded-2xl text-xs font-bold text-amber-600 bg-amber-50/80 border border-amber-200/80 flex items-center gap-1.5 hover:bg-amber-100 transition shadow-sm">
+            <span>💡 AI 연상 암기 팁</span>
+          </button>
+
+          <!-- Prev / Next Nav -->
+          <div class="flex items-center gap-1">
+            <button onclick="app.prevStudyCharacter()" class="soft-btn w-9 h-9 rounded-xl text-slate-600" title="이전 한자">◀</button>
+            <span id="study-current-idx" class="px-2 text-xs font-bold text-slate-500">1 / 50</span>
+            <button onclick="app.nextStudyCharacter()" class="soft-btn w-9 h-9 rounded-xl text-slate-600" title="다음 한자">▶</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Study Grid Layout: Left Hanzi Guide / Right Repetition Handwriting -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Column: Character Meta & HanziWriter Stroke Guide (5 cols) -->
+        <div class="lg:col-span-5 space-y-6">
+          <div class="soft-card p-6 flex flex-col items-center text-center relative overflow-hidden">
+            <!-- Learned Status Badge -->
+            <div id="study-learned-badge" class="hidden absolute top-4 right-4 px-3 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+              ✓ 학습 완료
+            </div>
+
+            <!-- Big Hanja Character Display -->
+            <div class="mt-2 mb-3">
+              <div id="study-char-kanji" class="text-7xl font-bold text-slate-900 hanja-font-target tracking-wide">校</div>
+            </div>
+
+            <!-- Hun and Eum -->
+            <div id="study-char-hun-eum" class="text-2xl font-extrabold text-slate-800 mb-1">
+              학교 교
+            </div>
+
+            <!-- Radical and Stroke count -->
+            <div id="study-char-meta" class="text-xs font-medium text-slate-400 mb-4">
+              부수: 木 (나무 목) | 총 10획
+            </div>
+
+            <!-- Example Words -->
+            <div class="w-full border-t border-slate-100 pt-3 mb-6">
+              <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">대표 활용 단어</div>
+              <div id="study-example-words" class="flex flex-wrap justify-center gap-1.5">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+
+            <!-- HanziWriter Stroke Order Animation Container -->
+            <div class="w-full bg-slate-50/70 p-4 rounded-2xl border border-slate-100 flex flex-col items-center">
+              <div class="text-xs font-bold text-slate-500 mb-2 flex items-center gap-1">
+                <span>획순(쓰는 순서) 가이드</span>
+              </div>
+              <div id="hanzi-writer-box" class="w-[200px] h-[200px] flex items-center justify-center bg-white rounded-xl shadow-inner border border-slate-200/60"></div>
+              
+              <!-- Stroke Guide Controls -->
+              <div class="flex items-center gap-2 mt-3">
+                <button onclick="app.playStrokeAnimation()" class="soft-btn px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-200 flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5 text-rose-500" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6V4z"/></svg>
+                  획순 다시보기
+                </button>
+                <button onclick="app.startStrokeQuiz()" class="soft-btn px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-600 bg-white border border-indigo-200 flex items-center gap-1">
+                  ✏️ 획순 따라쓰기 퀴즈
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Right Column: Apple Pencil Repetition Canvas (7 cols) -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="soft-card p-5 sm:p-6 flex flex-col h-full">
+
+            <!-- Repetition Counter & Target Selector Header -->
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div>
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">자유 반복 쓰기 연습</div>
+                <div id="study-rep-counter-text" class="text-base font-extrabold text-slate-800 mt-0.5">0 / 3 회 완료</div>
+              </div>
+
+              <!-- Target Repetition Buttons -->
+              <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl">
+                <span class="text-[11px] font-bold text-slate-400 px-2">목표:</span>
+                <button id="rep-target-btn-3" onclick="app.setStudyTargetReps(3)" class="px-3 py-1 text-xs font-bold rounded-xl bg-slate-900 text-white transition">3회</button>
+                <button id="rep-target-btn-5" onclick="app.setStudyTargetReps(5)" class="px-3 py-1 text-xs font-bold rounded-xl bg-slate-100 text-slate-600 transition">5회</button>
+                <button id="rep-target-btn-10" onclick="app.setStudyTargetReps(10)" class="px-3 py-1 text-xs font-bold rounded-xl bg-slate-100 text-slate-600 transition">10회</button>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-4">
+              <div id="study-rep-progress-bar" class="h-full bg-gradient-to-r from-orange-400 to-rose-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+
+            <!-- Canvas Tool Toolbar (Pen width, Ink color, Grid toggle, Undo, Eraser, Clear) -->
+            <div class="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-50/80 rounded-2xl border border-slate-100 mb-3">
+              <!-- Pen colors -->
+              <div class="flex items-center gap-1.5">
+                <button onclick="app.studyCanvas.setColor('#1E293B')" class="w-7 h-7 rounded-full bg-slate-800 shadow-sm ring-2 ring-slate-300" title="먹물 블랙"></button>
+                <button onclick="app.studyCanvas.setColor('#2563EB')" class="w-7 h-7 rounded-full bg-blue-600 shadow-sm" title="로얄 블루"></button>
+                <button onclick="app.studyCanvas.setColor('#DC2626')" class="w-7 h-7 rounded-full bg-red-600 shadow-sm" title="주홍 레드"></button>
+                <button onclick="app.studyCanvas.setColor('gradient-ribbon')" class="w-7 h-7 rounded-full shadow-sm" style="background: var(--grad-study)" title="그라데이션 잉크"></button>
+              </div>
+
+              <!-- Pen Width Selector -->
+              <div class="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200">
+                <button onclick="app.studyCanvas.setWidth(3)" class="px-2 py-1 text-[11px] font-bold rounded-lg text-slate-700 hover:bg-slate-100" title="얇게 (3px)">얇게</button>
+                <button onclick="app.studyCanvas.setWidth(6)" class="px-2 py-1 text-[11px] font-bold rounded-lg text-slate-700 hover:bg-slate-100" title="보통 (6px)">보통</button>
+                <button onclick="app.studyCanvas.setWidth(11)" class="px-2 py-1 text-[11px] font-bold rounded-lg text-slate-700 hover:bg-slate-100" title="굵게 (11px)">굵게</button>
+              </div>
+
+              <!-- Grid Guideline Toggle -->
+              <div class="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200">
+                <button onclick="app.studyCanvas.setGridType('mi')" class="px-2 py-1 text-[11px] font-bold rounded-lg text-slate-700 hover:bg-slate-100" title="미자격 가이드">米자격</button>
+                <button onclick="app.studyCanvas.setGridType('cross')" class="px-2 py-1 text-[11px] font-bold rounded-lg text-slate-700 hover:bg-slate-100" title="십자격 가이드">十자격</button>
+                <button onclick="app.studyCanvas.setGridType('none')" class="px-2 py-1 text-[11px] font-bold rounded-lg text-slate-700 hover:bg-slate-100" title="가이드 없음">없음</button>
+              </div>
+
+              <!-- Stroke Utilities (Undo, Eraser, Clear) -->
+              <div class="flex items-center gap-1">
+                <button onclick="app.studyCanvas.undo()" class="soft-btn px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-600" title="획 되돌리기">
+                  ↩ 취소
+                </button>
+                <button onclick="app.studyCanvas.setEraser(true)" class="soft-btn px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-600" title="지우개">
+                  🧹 지우개
+                </button>
+                <button onclick="app.studyCanvas.clear()" class="soft-btn px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50" title="전체 지우기">
+                  지우기
+                </button>
+              </div>
+            </div>
+
+            <!-- Apple Pencil Handwriting Canvas Area -->
+            <div class="canvas-wrapper flex-1 min-h-[340px] relative border border-slate-200">
+              <canvas id="study-draw-canvas" class="w-full h-full"></canvas>
+            </div>
+
+            <!-- Complete Single Repetition Button -->
+            <div class="mt-4 flex items-center justify-between gap-3">
+              <div class="text-xs text-slate-400">
+                ✏️ 손가락 또는 Apple Pencil로 격자선에 맞춰 써보세요.
+              </div>
+              <button onclick="app.completeSingleRepetition()" class="soft-btn ribbon-btn-study px-6 py-3 rounded-2xl text-sm font-bold flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition">
+                <span>✓ 1회 쓰기 완료</span>
+                <span class="text-xs bg-white/20 px-2 py-0.5 rounded-full">카운트</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================================
+         TAB 2. 플래시카드 모드 (Anki SM-2 Spaced Repetition + 필기 자가 검증)
+         ===================================================================== -->
+    <section id="tab-pane-card" class="space-y-6 fade-in hidden">
+      
+      <!-- Direction Toggle & Queue Status -->
+      <div class="soft-card p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-2xl">
+          <button id="card-dir-btn-1" onclick="app.setCardDirection('hanja_to_hun')" class="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-purple-600 text-white transition">
+            한자 ➔ 뜻/음 맞히기
+          </button>
+          <button id="card-dir-btn-2" onclick="app.setCardDirection('hun_to_hanja')" class="px-3.5 py-1.5 text-xs font-bold rounded-xl text-slate-600 transition">
+            뜻/음 ➔ 한자 쓰기
+          </button>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <span id="card-queue-badge" class="px-3.5 py-1 text-xs font-bold rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+            오늘 복습 큐: 0 / 0
+          </span>
+          <button onclick="app.askAiMnemonicForCurrentHanja()" class="soft-btn px-3 py-1.5 rounded-xl text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200">
+            💡 AI 팁
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty Notice -->
+      <div id="card-empty-notice" class="soft-card p-12 text-center hidden">
+        <div class="text-5xl mb-3">🎉</div>
+        <h3 class="text-lg font-bold text-slate-800">오늘 복습할 플래시카드가 없습니다!</h3>
+        <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+          모든 카드가 간격 반복 주기에 맞춰 다음 복습일에 배정되었습니다. 공부 모드에서 새로운 한자를 더 학습하거나 리포트에서 취약 한자를 집중 복습해 보세요.
+        </p>
+      </div>
+
+      <!-- Main Card & Handwriting Interface -->
+      <div id="card-main-container" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Question Prompt & Result Side (5 cols) -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="soft-card p-6 flex flex-col items-center text-center h-full justify-between">
+            <div class="w-full">
+              <span class="text-[11px] font-bold text-purple-600 uppercase tracking-wider bg-purple-50 px-3 py-1 rounded-full border border-purple-100 inline-block mb-4">
+                플래시카드 자가 검증
+              </span>
+              <div id="card-prompt-title" class="text-7xl font-bold text-slate-900 hanja-font-target mb-2">校</div>
+              <div id="card-prompt-sub" class="text-xs font-medium text-slate-400 mb-6">
+                부수: 木 | 총 10획 ➔ 뜻과 음을 손글씨로 적어보세요!
+              </div>
+            </div>
+
+            <!-- Revealed Real Answer Section -->
+            <div id="card-answer-panel" class="w-full p-5 bg-gradient-to-br from-purple-50/50 to-indigo-50/50 rounded-2xl border border-purple-100 text-center hidden mb-4">
+              <div class="text-[11px] font-bold text-purple-700 uppercase tracking-wider mb-1">정답 확인</div>
+              <div id="card-ans-kanji" class="text-4xl font-extrabold text-slate-900 hanja-font-target mb-1">校</div>
+              <div id="card-ans-hun-eum" class="text-xl font-bold text-purple-900 mb-2">학교 교</div>
+              <div id="card-ans-meta" class="text-xs text-slate-500">부수: 木 (10획) | 예문: 學校(학교)</div>
+            </div>
+
+            <!-- Check Answer Button (Prior to reveal) -->
+            <button id="card-check-btn" onclick="app.revealCardAnswer()" class="soft-btn ribbon-btn-card w-full py-3.5 rounded-2xl text-sm font-bold shadow-lg hover:scale-[1.02] active:scale-[0.98] transition">
+              🔍 정답 확인하기
+            </button>
+
+            <!-- 4 Anki SM-2 Difficulty Buttons (Appears after reveal) -->
+            <div id="card-rating-buttons" class="w-full grid grid-cols-2 sm:grid-cols-4 gap-2 hidden">
+              <button onclick="app.rateCard('again')" class="anki-btn anki-btn-again">
+                <span class="text-xs font-extrabold">다시 (Again)</span>
+                <span class="text-[10px] opacity-90 mt-0.5">1분 뒤 재시험</span>
+              </button>
+              <button onclick="app.rateCard('hard')" class="anki-btn anki-btn-hard text-slate-900">
+                <span class="text-xs font-extrabold">어려움 (Hard)</span>
+                <span class="text-[10px] opacity-90 mt-0.5">주기 x1.2</span>
+              </button>
+              <button onclick="app.rateCard('good')" class="anki-btn anki-btn-good">
+                <span class="text-xs font-extrabold">알맞음 (Good)</span>
+                <span class="text-[10px] opacity-90 mt-0.5">주기 x2.5</span>
+              </button>
+              <button onclick="app.rateCard('easy')" class="anki-btn anki-btn-easy">
+                <span class="text-xs font-extrabold">쉬움 (Easy)</span>
+                <span class="text-[10px] opacity-90 mt-0.5">주기 x4.0</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Handwriting Answer Canvas (7 cols) -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="soft-card p-5 sm:p-6 flex flex-col h-full">
+            <div class="flex items-center justify-between mb-3">
+              <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">내가 쓴 손글씨 답안</div>
+              <div class="flex items-center gap-1">
+                <button onclick="app.cardCanvas.undo()" class="soft-btn px-2.5 py-1 text-xs font-semibold text-slate-600 rounded-lg">실행취소</button>
+                <button onclick="app.cardCanvas.clear()" class="soft-btn px-2.5 py-1 text-xs font-semibold text-rose-600 rounded-lg">지우기</button>
+              </div>
+            </div>
+
+            <!-- Apple Pencil Handwriting Area -->
+            <div class="canvas-wrapper flex-1 min-h-[340px] relative border border-slate-200">
+              <canvas id="card-draw-canvas" class="w-full h-full"></canvas>
+            </div>
+
+            <div class="mt-3 text-center text-xs text-slate-400">
+              💡 필기 후 [정답 확인하기]를 눌러 내 손글씨와 실제 정답을 자가 검증해 보세요.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================================
+         TAB 3. 모의시험 모드 (실전 한자능력검정시험 스타일)
+         ===================================================================== -->
+    <section id="tab-pane-exam" class="space-y-6 fade-in hidden">
+      
+      <!-- Panel 1: Exam Setup Screen -->
+      <div id="exam-start-panel" class="soft-card p-8 max-w-xl mx-auto text-center space-y-6">
+        <div class="w-16 h-16 mx-auto rounded-3xl bg-cyan-50 border border-cyan-100 flex items-center justify-center text-3xl shadow-sm">
+          📝
+        </div>
+        <div>
+          <h2 class="text-xl font-extrabold text-slate-900">실전 한자능력검정 모의시험</h2>
+          <p class="text-xs text-slate-400 mt-1">한국 어문회 기준 독음, 훈음, 뜻, 주관식 손글씨 쓰기 복합 출제 (합격 기준 80점)</p>
+        </div>
+
+        <div class="space-y-4 text-left bg-slate-50 p-5 rounded-2xl border border-slate-100">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">응시 급수</label>
+            <select id="exam-level-select" class="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-sm font-bold text-slate-800 outline-none">
+              <option value="8">8급 (기초 50자)</option>
+              <option value="7_2">7급 II (누적 100자)</option>
+              <option value="7">7급 (누적 150자)</option>
+              <option value="6_2">6급 II (누적 225자)</option>
+              <option value="6">6급 (누적 300자)</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 mb-1">문항 수</label>
+              <select id="exam-count-select" class="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-sm font-bold text-slate-800 outline-none">
+                <option value="10">10문항 (미니 테스트)</option>
+                <option value="20" selected>20문항 (표준 모의시험)</option>
+                <option value="50">50문항 (실전 완성)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 mb-1">제한 시간</label>
+              <select id="exam-time-select" class="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-sm font-bold text-slate-800 outline-none">
+                <option value="10">10분</option>
+                <option value="15" selected>15분</option>
+                <option value="30">30분</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <button onclick="app.startMockExam()" class="soft-btn ribbon-btn-exam w-full py-4 rounded-2xl font-bold text-base shadow-lg hover:scale-[1.02] active:scale-[0.98] transition">
+          🚀 모의시험 시작하기
+        </button>
+      </div>
+
+      <!-- Panel 2: Active Exam Taking Interface -->
+      <div id="exam-active-panel" class="space-y-6 hidden">
+        <!-- Top Exam Header (Timer & Nav Grid) -->
+        <div class="soft-card p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <span id="exam-q-num" class="text-sm font-extrabold text-slate-900">제 1 문항</span>
+            <span class="text-slate-300">|</span>
+            <div class="flex items-center gap-1.5 font-mono text-sm font-bold text-rose-500 bg-rose-50 px-3 py-1 rounded-full border border-rose-200">
+              ⏱️ <span id="exam-timer-display">15:00</span>
+            </div>
+          </div>
+
+          <button onclick="app.submitExamForGrading()" class="soft-btn px-4 py-2 rounded-xl text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 transition">
+            제출 및 채점하기
+          </button>
+        </div>
+
+        <!-- Question Grid Navigator -->
+        <div id="exam-nav-grid" class="flex flex-wrap gap-1.5 p-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
+          <!-- Dynamically filled with question buttons -->
+        </div>
+
+        <!-- Main Question Card -->
+        <div class="soft-card p-6 sm:p-8 space-y-6">
+          <h3 id="exam-q-title" class="text-xl font-bold text-slate-800 leading-relaxed">
+            <!-- Question text -->
+          </h3>
+
+          <!-- Multiple Choice Container (Type A, B, C) -->
+          <div id="exam-mc-choices" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Injected 4 choices -->
+          </div>
+
+          <!-- Subjective Handwriting Container (Type D) -->
+          <div id="exam-subjective-container" class="space-y-4 hidden">
+            <div class="canvas-wrapper h-64 border border-slate-200">
+              <canvas id="exam-draw-canvas" class="w-full h-full"></canvas>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1">
+                <button onclick="app.examCanvas.undo()" class="soft-btn px-3 py-1.5 text-xs font-semibold rounded-lg">실행취소</button>
+                <button onclick="app.examCanvas.clear()" class="soft-btn px-3 py-1.5 text-xs font-semibold text-rose-600 rounded-lg">지우기</button>
+              </div>
+              <button onclick="app.saveExamHandwritingAnswer()" class="soft-btn px-4 py-2 text-xs font-bold rounded-xl text-indigo-600 bg-indigo-50 border border-indigo-200">
+                ✓ 필기 답안 임시저장
+              </button>
+            </div>
+          </div>
+
+          <!-- Bottom Navigation Buttons -->
+          <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+            <button onclick="app.prevExamQuestion()" class="soft-btn px-4 py-2 text-xs font-bold rounded-xl text-slate-600">
+              ◀ 이전 문항
+            </button>
+            <button onclick="app.nextExamQuestion()" class="soft-btn px-4 py-2 text-xs font-bold rounded-xl text-slate-600">
+              다음 문항 ▶
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: Self-Grading Review Screen -->
+      <div id="exam-grading-panel" class="space-y-6 hidden">
+        <div class="soft-card p-6 text-center space-y-2">
+          <h3 class="text-lg font-extrabold text-slate-900">손글씨 답안 자가 검증 및 최종 채점</h3>
+          <p class="text-xs text-slate-400">주관식 손글씨 문제는 실제 정답과 비교해 O/X를 확인해 주세요.</p>
+        </div>
+
+        <div id="exam-self-grading-list" class="space-y-3">
+          <!-- Filled with self grading items -->
+        </div>
+
+        <div class="text-center pt-4">
+          <button onclick="app.finalizeExamResult()" class="soft-btn ribbon-btn-exam px-8 py-4 rounded-2xl font-bold text-base shadow-xl">
+            🏆 최종 성적표 확인하기
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================================
+         TAB 4. 리포트 & 대시보드 (누적 성장 및 취약점 분석)
+         ===================================================================== -->
+    <section id="tab-pane-report" class="space-y-6 fade-in hidden">
+      
+      <!-- Top Summary Metrics Grid -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="soft-card p-4 sm:p-5 flex flex-col justify-between">
+          <span class="text-xs font-bold text-slate-400">연속 학습일</span>
+          <div class="flex items-baseline gap-1 mt-2">
+            <span id="rep-stat-streak" class="text-2xl sm:text-3xl font-extrabold text-amber-500">1일</span>
+            <span class="text-xs text-slate-400">연속 달성 🔥</span>
+          </div>
+        </div>
+
+        <div class="soft-card p-4 sm:p-5 flex flex-col justify-between">
+          <span class="text-xs font-bold text-slate-400">누적 학습 한자</span>
+          <div class="flex items-baseline gap-1 mt-2">
+            <span id="rep-stat-learned" class="text-2xl sm:text-3xl font-extrabold text-rose-500">0자</span>
+            <span class="text-xs text-slate-400">완료</span>
+          </div>
+        </div>
+
+        <div class="soft-card p-4 sm:p-5 flex flex-col justify-between">
+          <span class="text-xs font-bold text-slate-400">플래시카드 복습</span>
+          <div class="flex items-baseline gap-1 mt-2">
+            <span id="rep-stat-anki" class="text-2xl sm:text-3xl font-extrabold text-purple-600">0장</span>
+            <span class="text-xs text-slate-400">간격 반복 중</span>
+          </div>
+        </div>
+
+        <div class="soft-card p-4 sm:p-5 flex flex-col justify-between">
+          <span class="text-xs font-bold text-slate-400">목표 급수 마스터율</span>
+          <div class="flex items-baseline gap-1 mt-2">
+            <span id="rep-mastery-pct" class="text-2xl sm:text-3xl font-extrabold text-indigo-600">0%</span>
+            <span id="rep-mastery-sub" class="text-[10px] text-slate-400 truncate"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Target Grade Progress Bar Card -->
+      <div class="soft-card p-5 sm:p-6 space-y-3">
+        <div class="flex items-center justify-between text-xs font-bold">
+          <span class="text-slate-600">목표 급수 완성도 진행률</span>
+          <span class="text-indigo-600 font-extrabold">어문회 배정한자 기준</span>
+        </div>
+        <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+          <div id="rep-mastery-bar" class="h-full bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Chart: Exam Score Trend (Chart.js) -->
+      <div class="soft-card p-5 sm:p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900">모의시험 성적 변동 추이</h3>
+            <p class="text-xs text-slate-400">최근 7회차 모의시험 점수 그래프 (80점 합격선)</p>
+          </div>
+          <span class="text-xs font-bold px-3 py-1 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200">
+            실전 추이
+          </span>
+        </div>
+        <div class="h-60 w-full relative">
+          <canvas id="chart-exam-trend"></canvas>
+        </div>
+      </div>
+
+      <!-- Weak Characters Ledger (오답 노트) -->
+      <div class="soft-card p-5 sm:p-6 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+              🚨 취약 한자 (오답 빈도순 관리)
+            </h3>
+            <p class="text-xs text-slate-400">플래시카드에서 '다시'를 누르거나 모의시험에서 오답 처리된 한자들입니다.</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <!-- AI Coaching Button -->
+            <button onclick="app.askAiWeakCoaching()" class="soft-btn px-3 py-2 rounded-xl text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 flex items-center gap-1.5">
+              <span>🤖 AI 취약점 정밀 코칭</span>
+            </button>
+            <!-- Drill Button -->
+            <button onclick="app.startWeakDrill()" class="soft-btn ribbon-btn-study px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5">
+              <span>🔥 취약 한자만 집중 복습</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Weak Character List Container -->
+        <div id="weak-characters-list" class="space-y-2 pt-2">
+          <!-- Dynamically populated via JS -->
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================================
+         TAB 5. 설정 및 AI 어시스턴트 (Gemini API Fallback & Backup)
+         ===================================================================== -->
+    <section id="tab-pane-settings" class="space-y-6 fade-in hidden max-w-3xl mx-auto">
+      
+      <!-- Gemini API Key & Automatic Fallback Configuration -->
+      <div class="soft-card p-6 sm:p-7 space-y-5">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl border border-emerald-100 shadow-sm">
+            ⚡
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900">Google Gemini API 설정 & 자동 폴백 시스템</h3>
+            <p class="text-xs text-slate-400">안정적인 AI 암기 스토리텔링 및 1:1 맞춤 코칭을 제공합니다.</p>
+          </div>
+        </div>
+
+        <!-- Priority Router Diagram Alert -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+          <div class="font-bold text-slate-700 flex items-center gap-1.5">
+            <span>🛡️ 4단계 자동 폴백(Fallback) 라우터 탑재</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center pt-1 font-mono">
+            <div class="p-2 bg-white rounded-xl border border-slate-200 font-bold text-slate-800">1순위: 3.8-flash</div>
+            <div class="p-2 bg-white rounded-xl border border-slate-200 font-medium text-slate-600">2순위: 3.6-flash</div>
+            <div class="p-2 bg-white rounded-xl border border-slate-200 font-medium text-slate-600">3순위: 3.5-flash</div>
+            <div class="p-2 bg-white rounded-xl border border-slate-200 font-medium text-slate-600">4순위: 2.5-flash</div>
+          </div>
+          <p class="text-[11px] text-slate-400 pt-1">
+            * 429(할당량 초과), 404(모델 없음), 5xx 서버 오류 발생 시 다음 모델로 중단 없이 자동 전환됩니다.
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-xs font-bold text-slate-600">Google Gemini API Key</label>
+          <div class="flex gap-2">
+            <input type="password" id="setting-gemini-key" placeholder="AIzaSy..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-mono text-slate-800 outline-none focus:ring-2 focus:ring-emerald-300">
+            <button onclick="app.saveGeminiApiKey()" class="soft-btn px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-900 text-white">
+              저장
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-400">입력된 API Key는 오직 사용자의 브라우저 LocalStorage에만 안전하게 보관됩니다.</p>
+        </div>
+
+        <div class="flex justify-end pt-1">
+          <button onclick="app.testGeminiConnection()" class="soft-btn px-4 py-2 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200">
+            연결 테스트 & 모델 응답 확인
+          </button>
+        </div>
+      </div>
+
+      <!-- App Preference (Fonts & Sounds) -->
+      <div class="soft-card p-6 sm:p-7 space-y-5">
+        <h3 class="text-base font-extrabold text-slate-900">학습 환경 및 표시 설정</h3>
+
+        <div class="space-y-4">
+          <!-- Font Toggle -->
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <div class="text-sm font-bold text-slate-800">한자 표기 글꼴</div>
+              <div class="text-xs text-slate-400">획의 모양이 분명한 명조/해서체 또는 깔끔한 고딕체 선택</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-700 cursor-pointer">
+                <input type="radio" name="font-pref" value="serif" onchange="app.setFontPreference(this.value)" checked> 명조/해서체
+              </label>
+              <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-700 cursor-pointer ml-2">
+                <input type="radio" name="font-pref" value="sans" onchange="app.setFontPreference(this.value)"> 고딕체
+              </label>
+            </div>
+          </div>
+
+          <!-- Sound Toggle -->
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-bold text-slate-800">학습 효과음</div>
+              <div class="text-xs text-slate-400">획 완료 및 정답 축하 오디오 차임벨 재생 (Web Audio API)</div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="setting-sound-toggle" onchange="app.toggleSound(this.checked)" checked class="sr-only peer">
+              <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cloud Synchronization & Account (Firestorage / Auth) -->
+      <div class="soft-card p-6 sm:p-7 space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-xl border border-cyan-100 shadow-sm">
+              ☁️
+            </div>
+            <div>
+              <h3 class="text-base font-extrabold text-slate-900">클라우드 동기화 (폰 • 아이패드 • PC 연동)</h3>
+              <p class="text-xs text-slate-400">Firebase Cloud Storage를 통해 어디서나 동일한 학습 진도로 이어서 학습하세요.</p>
+            </div>
+          </div>
+          <div id="setting-sync-status-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600">
+            비로그인 상태
+          </div>
+        </div>
+
+        <div id="setting-sync-account-box" class="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div>
+              <span class="text-slate-400 font-medium">연동 계정: </span>
+              <span id="setting-sync-email" class="font-bold text-slate-800">로그인 필요</span>
+            </div>
+            <div>
+              <span class="text-slate-400 font-medium">최근 동기화: </span>
+              <span id="setting-sync-time" class="font-mono text-slate-600 font-medium">-</span>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-2 pt-1">
+            <button id="setting-sync-login-btn" onclick="app.openAuthModal()" class="soft-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-white">
+              로그인 / 회원가입
+            </button>
+            <button id="setting-sync-now-btn" onclick="app.syncCloudNow()" class="soft-btn px-4 py-2 rounded-xl text-xs font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 hidden">
+              🔄 지금 즉시 클라우드에 저장
+            </button>
+            <button id="setting-sync-fetch-btn" onclick="app.fetchCloudDataNow()" class="soft-btn px-4 py-2 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 hidden">
+              📥 클라우드에서 최신 데이터 가져오기
+            </button>
+            <button id="setting-sync-logout-btn" onclick="app.handleSignOut()" class="soft-btn px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 hidden">
+              로그아웃
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Backup & Restore (JSON) -->
+      <div class="soft-card p-6 sm:p-7 space-y-4">
+        <h3 class="text-base font-extrabold text-slate-900">학습 데이터 백업 및 복원 (JSON)</h3>
+        <p class="text-xs text-slate-400">여러 유저의 학습 진도, 플래시카드 간격 스케줄, 모의시험 성적표, 오답노트를 JSON 파일로 내보내거나 복원합니다.</p>
+
+        <div class="flex flex-wrap gap-3 pt-2">
+          <button onclick="app.exportDataBackup()" class="soft-btn px-4 py-2.5 rounded-xl text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200">
+            📥 전체 데이터 백업 (JSON 다운로드)
+          </button>
+          
+          <label class="soft-btn px-4 py-2.5 rounded-xl text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 cursor-pointer">
+            📤 데이터 복원 (JSON 불러오기)
+            <input type="file" accept=".json" onchange="app.importDataBackup(event)" class="hidden">
+          </label>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- =========================================================================
+       Bottom / Fixed Navigation Bar (Clean Pure White & Colorful 3D Gradient Ribbon)
+       ========================================================================= -->
+  <nav class="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t border-slate-200/60 safe-bottom">
+    <div class="max-w-lg mx-auto px-4 py-2 flex items-center justify-around">
+
+      <!-- Tab 1: 공부 모드 (Study) - Orange/Coral Ribbon -->
+      <button id="nav-btn-study" class="nav-tab-item flex flex-col items-center gap-1 py-1 active group">
+        <div class="ribbon-icon-squircle">
+          <svg viewBox="0 0 40 40" class="w-7 h-7">
+            <defs>
+              <linearGradient id="navGradStudy" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FF9A44" />
+                <stop offset="100%" stop-color="#FC6076" />
+              </linearGradient>
+            </defs>
+            <!-- Tubular Ribbon Open Book -->
+            <path d="M 6 12 C 12 9, 20 11, 20 18 C 20 27, 12 25, 6 28 Z" fill="url(#navGradStudy)" opacity="0.9" />
+            <path d="M 34 12 C 28 9, 20 11, 20 18 C 20 27, 28 25, 34 28 Z" fill="url(#navGradStudy)" />
+            <path d="M 20 17 L 20 31" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" />
+          </svg>
+        </div>
+        <span class="text-[11px] font-bold text-slate-700 group-hover:text-rose-500">공부 모드</span>
+        <div class="tab-indicator w-5 bg-gradient-to-r from-orange-400 to-rose-500"></div>
+      </button>
+
+      <!-- Tab 2: 플래시카드 (Cards) - Purple/Pink Ribbon -->
+      <button id="nav-btn-card" class="nav-tab-item flex flex-col items-center gap-1 py-1 group">
+        <div class="ribbon-icon-squircle">
+          <svg viewBox="0 0 40 40" class="w-7 h-7">
+            <defs>
+              <linearGradient id="navGradCard" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#B721FF" />
+                <stop offset="100%" stop-color="#21D4FD" />
+              </linearGradient>
+            </defs>
+            <!-- 3D Ribbon Overlapping Cards -->
+            <rect x="8" y="7" width="18" height="24" rx="5" fill="url(#navGradCard)" opacity="0.65" transform="rotate(-8 17 19)" />
+            <rect x="14" y="9" width="18" height="24" rx="5" fill="url(#navGradCard)" />
+            <circle cx="23" cy="21" r="4" fill="#FFFFFF" opacity="0.9" />
+          </svg>
+        </div>
+        <span class="text-[11px] font-bold text-slate-700 group-hover:text-purple-600">플래시카드</span>
+        <div class="tab-indicator w-5 bg-gradient-to-r from-purple-500 to-cyan-400"></div>
+      </button>
+
+      <!-- Tab 3: 모의시험 (Exam) - Mint/Cyan Ribbon -->
+      <button id="nav-btn-exam" class="nav-tab-item flex flex-col items-center gap-1 py-1 group">
+        <div class="ribbon-icon-squircle">
+          <svg viewBox="0 0 40 40" class="w-7 h-7">
+            <defs>
+              <linearGradient id="navGradExam" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#00F2FE" />
+                <stop offset="100%" stop-color="#4FACFE" />
+              </linearGradient>
+            </defs>
+            <!-- 3D Clipboard & Ribbon Check -->
+            <rect x="9" y="8" width="22" height="26" rx="6" fill="#FFFFFF" stroke="url(#navGradExam)" stroke-width="3" />
+            <path d="M 15 7 Q 20 5 25 7" stroke="url(#navGradExam)" stroke-width="3.5" stroke-linecap="round" fill="none" />
+            <path d="M 14 21 L 18 25 L 26 15" fill="none" stroke="url(#navGradExam)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <span class="text-[11px] font-bold text-slate-700 group-hover:text-cyan-600">모의시험</span>
+        <div class="tab-indicator w-5 bg-gradient-to-r from-cyan-400 to-blue-500"></div>
+      </button>
+
+      <!-- Tab 4: 리포트 (Report) - Cyan/Indigo Ribbon -->
+      <button id="nav-btn-report" class="nav-tab-item flex flex-col items-center gap-1 py-1 group">
+        <div class="ribbon-icon-squircle">
+          <svg viewBox="0 0 40 40" class="w-7 h-7">
+            <defs>
+              <linearGradient id="navGradReport" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#30CFD0" />
+                <stop offset="100%" stop-color="#5B247A" />
+              </linearGradient>
+            </defs>
+            <!-- Ribbon Chart Curves & Bars -->
+            <rect x="8" y="22" width="5" height="11" rx="2.5" fill="url(#navGradReport)" opacity="0.6" />
+            <rect x="17" y="15" width="5" height="18" rx="2.5" fill="url(#navGradReport)" opacity="0.8" />
+            <rect x="26" y="9" width="5" height="24" rx="2.5" fill="url(#navGradReport)" />
+            <path d="M 8 18 Q 18 10 30 7" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <span class="text-[11px] font-bold text-slate-700 group-hover:text-indigo-600">리포트</span>
+        <div class="tab-indicator w-5 bg-gradient-to-r from-teal-400 to-indigo-600"></div>
+      </button>
+
+      <!-- Tab 5: 설정 & AI (Settings) - Lime/Green Ribbon -->
+      <button id="nav-btn-settings" class="nav-tab-item flex flex-col items-center gap-1 py-1 group">
+        <div class="ribbon-icon-squircle">
+          <svg viewBox="0 0 40 40" class="w-7 h-7">
+            <defs>
+              <linearGradient id="navGradSettings" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#A8EB12" />
+                <stop offset="100%" stop-color="#00BF72" />
+              </linearGradient>
+            </defs>
+            <!-- 3D Ribbon Sparkle / Gear -->
+            <path d="M 20 6 C 21 13, 27 19, 34 20 C 27 21, 21 27, 20 34 C 19 27, 13 21, 6 20 C 13 19, 19 13, 20 6 Z" fill="url(#navGradSettings)" />
+            <circle cx="20" cy="20" r="3.5" fill="#FFFFFF" />
+          </svg>
+        </div>
+        <span class="text-[11px] font-bold text-slate-700 group-hover:text-emerald-600">설정 & AI</span>
+        <div class="tab-indicator w-5 bg-gradient-to-r from-lime-400 to-emerald-500"></div>
+      </button>
+
+    </div>
+  </nav>
+
+  <!-- =========================================================================
+       MODAL 1: Multi-User Switcher & Management Modal
+       ========================================================================= -->
+  <div id="user-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm hidden">
+    <div class="soft-card max-w-md w-full p-6 space-y-5 fade-in bg-white">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-extrabold text-slate-900">학습자 프로필 전환 / 관리</h3>
+        <button onclick="app.closeUserModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- User List -->
+      <div id="user-modal-list" class="space-y-2 max-h-60 overflow-y-auto">
+        <!-- Rendered via JS -->
+      </div>
+
+      <!-- Add New User Form -->
+      <div class="pt-3 border-t border-slate-100 space-y-3">
+        <div class="text-xs font-bold text-slate-600">새 학습자 추가</div>
+        <div class="flex gap-2">
+          <input type="text" id="new-user-name" placeholder="이름 (예: 민준)" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none">
+          <select id="new-user-level" class="bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs font-bold outline-none">
+            <option value="8">8급</option>
+            <option value="7_2">7급 II</option>
+            <option value="7">7급</option>
+            <option value="6_2">6급 II</option>
+            <option value="6">6급</option>
+          </select>
+          <button onclick="app.addUserFromModal()" class="soft-btn px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white">
+            추가
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 2: AI Mnemonic & Coaching Modal
+       ========================================================================= -->
+  <div id="ai-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm hidden">
+    <div class="soft-card max-w-lg w-full p-6 space-y-4 fade-in bg-white max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div>
+          <h3 id="ai-modal-title" class="text-base font-extrabold text-slate-900">🤖 Gemini AI 어시스턴트</h3>
+          <span id="ai-modal-model-badge" class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-slate-100 text-slate-600 mt-1 inline-block">
+            모델 호출 중...
+          </span>
+        </div>
+        <button onclick="app.closeAiModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div id="ai-modal-body" class="flex-1 overflow-y-auto">
+        <!-- Rendered AI Response -->
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex justify-end">
+        <button onclick="app.closeAiModal()" class="soft-btn px-5 py-2 rounded-xl text-xs font-bold bg-slate-900 text-white">
+          확인
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 3: Exam Final Score & Pass/Fail Modal
+       ========================================================================= -->
+  <div id="exam-result-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md hidden">
+    <div class="soft-card max-w-md w-full p-8 text-center space-y-5 fade-in bg-white">
+      <div class="text-5xl">🎖️</div>
+      <div>
+        <span id="res-pass-badge" class="px-4 py-1.5 rounded-full text-sm font-bold inline-block mb-3 bg-emerald-100 text-emerald-700">
+          합격 (80점 이상)
+        </span>
+        <div id="res-score" class="text-5xl font-black text-slate-900 tracking-tight">
+          100점
+        </div>
+        <div id="res-meta" class="text-xs text-slate-400 mt-2">
+          총 20문항 중 20문항 정답 | 오답노트 자동 등록 완료
+        </div>
+      </div>
+
+      <div class="pt-4 flex flex-col gap-2">
+        <button onclick="app.askAiExamCritique()" class="soft-btn px-4 py-3 rounded-2xl text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 flex items-center justify-center gap-1.5 hover:bg-amber-100 transition shadow-sm">
+          <span>🤖 Gemini AI 실전 시험 총평 & 처방전</span>
+        </button>
+        <button onclick="app.closeExamResultModal(); app.switchTab('report')" class="soft-btn ribbon-btn-report py-3 rounded-2xl text-xs font-bold text-white">
+          📊 성장 리포트에서 분석 보기
+        </button>
+        <button onclick="app.closeExamResultModal()" class="soft-btn py-2.5 rounded-2xl text-xs font-bold text-slate-600">
+          닫기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 4: Firebase Auth & Multi-Device Cloud Sync Modal
+       ========================================================================= -->
+  <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md hidden">
+    <div class="soft-card max-w-md w-full p-6 sm:p-7 space-y-5 fade-in bg-white shadow-2xl border border-slate-100">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-lg border border-cyan-100">
+            ☁️
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900">클라우드 동기화 계정</h3>
+            <p class="text-[11px] text-slate-400">폰, 아이패드, PC 어디서든 실시간 동기화</p>
+          </div>
+        </div>
+        <button onclick="app.closeAuthModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Logged-in View -->
+      <div id="auth-logged-in-view" class="space-y-4 hidden">
+        <div class="p-4 bg-cyan-50/70 border border-cyan-200 rounded-2xl space-y-2 text-center">
+          <div class="w-12 h-12 rounded-full bg-cyan-500 text-white flex items-center justify-center text-xl font-bold mx-auto shadow-sm">
+            ✓
+          </div>
+          <div class="text-xs font-bold text-cyan-800">동기화 활성화됨</div>
+          <div id="auth-user-email-display" class="text-sm font-extrabold text-slate-900">user@example.com</div>
+          <div id="auth-last-sync-display" class="text-[11px] text-slate-500">최근 동기화: 방금 전</div>
+        </div>
+
+        <div class="space-y-2 pt-2">
+          <button onclick="app.syncCloudNow()" class="soft-btn ribbon-btn-exam w-full py-3.5 rounded-2xl text-xs font-bold shadow-md">
+            🔄 지금 즉시 클라우드에 동기화 (업로드)
+          </button>
+          <button onclick="app.fetchCloudDataNow()" class="soft-btn w-full py-3 rounded-2xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200">
+            📥 클라우드 데이터 강제 내려받기 (다운로드)
+          </button>
+          <button onclick="app.handleSignOut()" class="soft-btn w-full py-2.5 rounded-2xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200">
+            🚪 로그아웃
+          </button>
+        </div>
+      </div>
+
+      <!-- Guest / Login View -->
+      <div id="auth-form-view" class="space-y-4">
+        <!-- Auth Tabs (로그인 / 회원가입) -->
+        <div class="grid grid-cols-2 p-1 bg-slate-100 rounded-2xl text-xs font-bold text-slate-600">
+          <button id="auth-tab-login" onclick="app.switchAuthTab('login')" class="py-2 rounded-xl bg-white text-slate-900 shadow-sm transition">
+            로그인
+          </button>
+          <button id="auth-tab-signup" onclick="app.switchAuthTab('signup')" class="py-2 rounded-xl text-slate-500 transition">
+            회원가입
+          </button>
+        </div>
+
+        <!-- Form Fields -->
+        <div class="space-y-3">
+          <div id="auth-field-name-container" class="space-y-1 hidden">
+            <label class="block text-xs font-bold text-slate-600">닉네임 / 학습자 이름</label>
+            <input type="text" id="auth-name-input" placeholder="예: 민준이, 열공한자" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-cyan-300">
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-xs font-bold text-slate-600">이메일 아이디 (ID)</label>
+            <input type="email" id="auth-email-input" placeholder="hanja@example.com" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-cyan-300">
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-xs font-bold text-slate-600">비밀번호 (PW)</label>
+            <input type="password" id="auth-password-input" placeholder="최소 6자 이상" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-cyan-300">
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button id="auth-submit-btn" onclick="app.handleAuthSubmit()" class="soft-btn ribbon-btn-exam w-full py-3.5 rounded-2xl text-xs font-bold shadow-lg hover:scale-[1.01] active:scale-[0.99] transition">
+          로그인하고 동기화 시작
+        </button>
+
+        <!-- Forgot Password Link -->
+        <div class="text-center pt-1">
+          <button onclick="app.handlePasswordReset()" class="text-[11px] font-medium text-slate-400 hover:text-slate-600 underline">
+            비밀번호를 잊으셨나요?
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none items-center">
+    <!-- Toasts injected dynamically -->
+  </div>
+
+  <!-- Application JS Modules -->
+  <script src="js/data.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/canvas.js"></script>
+  <script src="js/gemini.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
